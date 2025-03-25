@@ -4,38 +4,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final cameras = await availableCameras();
-
-  if (cameras.isEmpty) {
-    runApp(const NoCameraApp());
-    return;
-  }
-
-  final firstCamera = cameras.first;
-  runApp(MyApp(camera: firstCamera));
-}
-
-class NoCameraApp extends StatelessWidget {
-  const NoCameraApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('사용 가능한 카메라가 없습니다'),
-        ),
-      ),
-    );
-  }
+void main() {
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final CameraDescription camera;
-
-  const MyApp({super.key, required this.camera});
+  const MyApp({super.key});
 
   @override
   Widget build (BuildContext context) {
@@ -44,9 +18,44 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: TakePictureScreen(
-        // Pass the appropriate camera to the TakePictureScreen widget.
-        camera: camera,
+      home: HomeScreen(),
+    );
+  }
+}
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  Future<void> _openCamera(BuildContext context) async {
+    try {
+      final cameras = await availableCameras();
+      final backCamera = cameras.firstWhere(
+            (camera) => camera.lensDirection == CameraLensDirection.back,
+        orElse: () => throw Exception('후면 카메라가 없습니다.'),
+      );
+
+      // 페이지 이동
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TakePictureScreen(camera: backCamera),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('카메라 오류: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: OutlinedButton(
+          child: const Text("카메라"),
+          onPressed: () => _openCamera(context),
+        ),
       ),
     );
   }
